@@ -1,0 +1,19 @@
+{
+  "name": "@-amazeelabs/silverback_preview_link",
+  "version": "1.1.1",
+  "author": "Amazee Labs <development@amazeelabs.com>",
+  "license": "GPL-2.0+",
+  "publishConfig": {
+    "access": "public",
+    "registry": "http://127.0.0.1:4873",
+    "repository": "git@github.com:AmazeeLabs/silverback_preview_link.git",
+    "branch": "main"
+  },
+  "devDependencies": {
+    "@amazeelabs/sync-composer-version": "1.1.5"
+  },
+  "scripts": {
+    "version": "sync-composer-version"
+  },
+  "gitHead": "e92d47df5613d8775422d8af124652fe25eaa35d"
+}
