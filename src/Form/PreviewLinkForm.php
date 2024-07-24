@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Drupal\silverback_preview_link\Form;
 
 use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
@@ -19,11 +20,14 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\silverback_preview_link\Entity\SilverbackPreviewLink;
 use Drupal\silverback_preview_link\PreviewLinkExpiry;
 use Drupal\silverback_preview_link\PreviewLinkHostInterface;
 use Drupal\silverback_preview_link\PreviewLinkStorageInterface;
+use Drupal\silverback_preview_link\QRCodeLogo;
+use Drupal\silverback_preview_link\QRCodeWithLogo;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -145,45 +149,46 @@ final class PreviewLinkForm extends ContentEntityForm {
     $remainingSeconds = max(0, ($this->entity->getExpiry()?->getTimestamp() ?? 0) - $this->time->getRequestTime());
     $remainingAgeFormatted = $this->dateFormatter->formatInterval($remainingSeconds);
     $isNewToken = $this->linkExpiry->getLifetime() === $remainingSeconds;
-    $qrCode = NULL;
+    $displayQRCode = TRUE;
+    $qrCodeUrlString = NULL;
+    $actionsDescription = NULL;
 
     if ($isNewToken) {
-      $buttonsDescription = $this->t('<p><a href=":url" target="_blank">Live preview link</a> for <em>@entity_label</em>. Expires @lifetime after creation.</p>', [
-        ':url' => $externalPreviewUrlString,
-        '@entity_label' => $host->label(),
+      $expiryDescription = $this->t('Expires @lifetime after creation.', [
         '@lifetime' => $originalAgeFormatted,
       ]);
-      $qrCode = (new QRCode)->render($externalPreviewUrlString);
-      $actionsDescription = NULL;
     }
     else {
       if ($remainingSeconds === 0) {
-        $buttonsDescription = $this->t('<p><a href=":url" target="_blank">Live preview link</a> for <em>@entity_label</em> has expired, reset link expiry or generate a new one.</p>', [
+        $expiryDescription = $this->t('Live preview link</a> for <em>@entity_label</em> has expired, reset link expiry or generate a new one.', [
           ':url' => $externalPreviewUrlString,
           '@entity_label' => $host->label(),
         ]);
+        $displayQRCode = FALSE;
       }
       else {
-        $buttonsDescription = $this->t('<p><a href=":url" target="_blank">Live preview link</a> for <em>@entity_label</em>. Expires in @lifetime.</p>', [
+        $expiryDescription = $this->t('Live preview link for <em>@entity_label</em> expires in @lifetime.</p>', [
           ':url' => $externalPreviewUrlString,
           '@entity_label' => $host->label(),
           '@lifetime' => $remainingAgeFormatted,
         ]);
-        $qrCode = (new QRCode)->render($externalPreviewUrlString);
       }
       $actionsDescription = $this->t('If a new link is generated, active preview link will get invalidated.');
+    }
+
+    if ($displayQRCode) {
+      $qrCodeEncodedUrl = base64_encode($externalPreviewUrlString);
+      $qrCodeUrlString = Url::fromRoute('silverback_preview_link.qr_code', ['base64_url' => $qrCodeEncodedUrl])->toString();
     }
 
     $form['preview_link'] = [
       '#theme' => 'preview_link',
       '#title' => $this->t('Preview link'),
       '#weight' => -9999,
-      '#link_description' => $buttonsDescription,
-      '#preview_qr_code' => $qrCode,
-      '#preview_qr_alt' => $externalPreviewUrlString,
+      '#preview_url' => $externalPreviewUrlString,
+      '#preview_qr_code_url' => $qrCodeUrlString,
+      '#expiry_description' => $expiryDescription,
       '#actions_description' => $actionsDescription,
-      '#remaining_lifetime' => $remainingAgeFormatted,
-      '#preview_url' => NULL,
     ];
 
     if (!$isNewToken) {
@@ -208,6 +213,7 @@ final class PreviewLinkForm extends ContentEntityForm {
       ];
     }
     unset($form['actions']['submit']);
+    $form['#attached']['library'][] = 'silverback_preview_link/copy';
 
     return $form;
   }
