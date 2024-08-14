@@ -1,6 +1,6 @@
 {
   "name": "@-amazeelabs/silverback_preview_link",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "author": "Amazee Labs <development@amazeelabs.com>",
   "license": "GPL-2.0+",
   "publishConfig": {
@@ -15,5 +15,5 @@
   "scripts": {
     "version": "sync-composer-version"
   },
-  "gitHead": "25e342c36c63ade02156c8d86606cd0ce189ddfd"
+  "gitHead": "60956d49a9b1de268bbc8af8f70ae720bdad135b"
 }
